@@ -1,0 +1,11 @@
+#ignore all compiled objects and archives 
+*.a
+*.o
+*.out
+
+#ignore the pdf of the course
+2020-C-CRASH-COURSE.pdf
+
+#ignore past years folder and its content
+AA2019_2020/
+
