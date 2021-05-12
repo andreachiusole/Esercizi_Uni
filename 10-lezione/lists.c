@@ -1,95 +1,222 @@
 /* Lezione 11/05/2021 */
 #include <stdlib.h>
 #include <stdio.h>
+#include "lists.h"	/*struct incluse nel header file*/
 
-//example object
-struct object
-{
-	char name[20];
-	int data;
-	double production_rate;
-	//....
-};
+#define LISTDEF(X, num); \
+		LIST *el = NULL;\
+		for (int i = 0; i < (num); i++)\
+		{\
+			el = malloc(sizeof(LIST));\
+			el->obj.data = i;\
+			el->next = NULL;\
+			/*insert_to_top(X, el);*/\
+			insert_to_end((X), el);\
+		}
 
-//elemento per gestire la lista
-struct elem
-{
-	struct object obj;
-	struct elem *next;
-};
+//LIST l; 
+/* È identico a: */
+//struct elem l; 
 
-//permette di dichiarare un nuovo tipo in modo da 
-typedef struct elem List;
-
-//List l; 
-//same as struct elem l; 
-
-void show_content(List *base)
+void show_content(LIST *list_start)
 {
 	printf("[");
-	for(List *aux = base; aux != NULL; aux = aux->next)
+	for (LIST *aux = list_start; aux != NULL; aux = aux->next)
 	{
-		printf(" %d", aux->obj.data);
-		if(aux->next != NULL)
+		printf("%d", aux->obj.data);
+		if (aux->next != NULL)
 		{
 			printf(",");
 		}
 	}
 	printf("]\n");
-
 }
 
-// doppio puntatore perché devo andare a modificare l'indirizzo 
-// del primo puntatore della lista in modo da farlo puntare
-void top_insertion(List **base, List *el)
+void freelist(LIST *list_start)
 {
-	List *aux = (*base);
-	(*base) = el;
+	while (list_start != NULL)
+	{
+		remove_from_top(&list_start);
+	}
+}
+
+/*	Bisogna utilizzare un doppio puntatore perché devo andare a modificare l'indirizzo 
+*	del primo puntatore della lista in modo da modificare ciò a cui sta puntando.
+*	Se venisse passato un puntatore singolo non sarebbe possibile modificare 
+*	il contenuto del puntatore nel main che continuerebbe a puntare al vecchio 
+*	indirizzo.
+*/
+void insert_to_top(LIST **list_start, LIST *el)
+{
+	LIST *aux = (*list_start);
+	(*list_start) = el;
 	el->next = aux;
 
 	//oppure senza usare il puntatore ausiliario
 	/*
-	el->next = (*base);
-	(*base) = el;
+	el->next = (*list_start);
+	(*list_start) = el;
 	*/
 }
 
-void insert_to_position(List **base, List *el, int index)
+void insert_to_end(LIST **list_start, LIST *el)
 {
-	List *aux = (*base);
-
-	if(index <= 0 || aux == NULL)
+	if ((*list_start) == NULL)
 	{
-		(*base) = el;
+		(*list_start) = el;
+		return;
+	}
+	LIST *aux = (*list_start);
+
+	for (; aux->next != NULL; aux = aux->next)
+		;
+	aux->next = el;
+	el->next = NULL;
+}
+
+
+void insert_to_position(LIST **list_start, LIST *el, int index)
+{
+	LIST *aux = (*list_start);
+	
+	if (index < 0)
+	{
+		printf("Index value must be greater than or equal to 0.\n");
+		return;
+	}
+	else if (index == 0 || aux == NULL)
+	{
+		/*Si potrebbe chiamare direttamente la funzione che ha questo scopo*/
+		//insert_to_top(list_start, el);
+		(*list_start) = el;
 		el->next = aux;
+		return;
 	}
 	else
 	{
-		// il for deve solo scorrere la lista
-		for(int i = 1; i < index || aux->next != NULL; i++, aux = aux->next)
+		// il for deve solo scorrere la lista per questo non ha corpo
+		for (int i = 1; i == index && aux->next != NULL; i++, aux = aux->next)
+			; 	// è meglio mettere ';' su una nuova riga per far capire l'intenzione di non avere niente all'interno 
+						
 		el->next = aux->next;
 		aux->next = el;
 	}
 }
 
-//rimuovi elemento
-//inserisci in fondo
+void remove_from_top(LIST **list_start)
+{
+	if ((*list_start) == NULL)
+	{
+		printf("The list is already empty\n");
+		return;	
+	}
+	else if ((*list_start)->next == NULL)
+	{
+		free((*list_start));
+		(*list_start) = NULL;
+		return;
+	}
 
+	LIST *aux = (*list_start);
+	(*list_start) = aux->next;
+	free(aux);
+}
+
+void remove_from_end(LIST **list_start)
+{
+	if ((*list_start) == NULL)
+	{
+		printf("The list is already empty\n");
+		return;	
+	}
+	else if ((*list_start)->next == NULL)
+	{
+		free((*list_start));
+		(*list_start) = NULL;
+		return;
+	}
+
+
+	LIST *aux = (*list_start);
+	//get to the second last element of the list
+	for (; aux->next->next != NULL; aux = aux->next)
+		;
+	free(aux->next);
+	aux->next = NULL;
+}
+
+void remove_el(LIST **list_start, int index)
+{
+	if ((*list_start) == NULL)
+	{
+		printf("The list is already empty\n");
+		return;
+	}
+	int i = 0;
+	LIST *aux = (*list_start);
+	LIST *temp = NULL;	
+
+	for (i; i < index; i++)
+	{
+		if (aux->next == NULL)
+		{
+		printf("This list has %d elements. The last element has been removed \n", (i+1));
+		remove_from_end(list_start);
+		return;
+		}
+		aux = aux->next;
+	}
+	
+	if (aux->next == NULL)
+	{
+		remove_from_end(list_start);
+	}
+	else
+	{
+		temp = aux;
+		aux->next = aux->next->next;
+		free(temp->next);
+	}
+}
 
 int main()
 {
-	List *base = NULL;
-	List *el = malloc(sizeof(List));
+	LIST *init = NULL;
+	#if 0
+	LIST *el = NULL;
+	el = malloc(sizeof(LIST));
 	el->obj.data = 7;
 	el->next = NULL;
-	top_insertion(&base, el);
+	insert_to_top(&init, el);
 
-	//ora l'informazione di el è stato registrato in base, quindi
+	//ora l'informazione di el è stato registrato in init, quindi
 	//posso usare lo stesso elemento per allocare nuova memoria
-	el = malloc(sizeof(List));
+	el = malloc(sizeof(LIST));
 	el->obj.data = 12;
 	el->next = NULL;
-	top_insertion(&base, el);
+	insert_to_top(&init, el);
 
-	show_content(base);
+	el = malloc(sizeof(LIST));
+	el->obj.data = 15;
+	el->next = NULL;
+	insert_to_top(&init, el);
+
+	#else
+	LISTDEF(&init, 1);
+
+	#endif
+
+	show_content(init);
+	remove_from_top(&init);
+
+	#if 0
+	LIST *el = malloc(sizeof(LIST));
+	el->obj.data = 13;
+	el->next = NULL;
+	insert_to_position(&init, el, 2);
+	remove_from_end(&init);
+	#endif
+	show_content(init);
+
+	freelist(init);
 }
